@@ -47,37 +47,27 @@ app.get('/chatbot', (req, res) =>
     console.log(err.message);
   }
 });
-
-// Socket connection handler
 io.on('connection', (socket) => {
-    console.log("A user connected");
+  const python = spawn('python3', ['gettingTrain.py']);
+  
+  python.stdout.on('data', (data) => {
+    const botMessage = data.toString();
+    socket.emit('botMessage', botMessage); // Emit 'botMessage' event
+  });
 
-    // Listen for a 'request train info' event from client
-    socket.on('request train info', (fromStation, toStation, date) => {
-        console.log(`Received train info request: ${fromStation} to ${toStation} on ${date}`);
+  python.stderr.on('data', (data) => {
+    console.error(`stderr: ${data}`);
+  });
 
-        // Start the Python scraper with arguments
-        const pythonProcess = spawn('python', ['railwayScrapper.py', fromStation, toStation, date]);
+  python.on('close', (code) => {
+    console.log(`child process exited with code ${code}`);
+  });
 
-        pythonProcess.stdout.on('data', (data) => {
-            // Parse the output from the Python script
-            const response = JSON.parse(data.toString());
-            console.log("Sending train ticket data back to client");
-
-            // Emit the response back to the client
-            socket.emit('train info response', response);
-        });
-
-        pythonProcess.stderr.on('data', (data) => {
-            console.error(`stderr: ${data.toString()}`);
-            socket.emit('error', 'Failed to fetch ticket information');
-        });
-
-        pythonProcess.on('close', (code) => {
-            console.log(`child process exited with code ${code}`);
-        });
-    });
+  socket.on('userMessage', (message) => {
+    python.stdin.write(message + '\n');
+  });
 });
+
 server.listen(3000, () => {
     console.log('listening on *:3000');
 });
