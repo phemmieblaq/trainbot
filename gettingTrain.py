@@ -1,9 +1,11 @@
 import spacy
 from experta import KnowledgeEngine, Rule, Fact
+import re
 
 import pandas as pd
 
-from patterns import get_entities
+from patterns import get_entities,yes_pattern, no_pattern
+
 
 # Load spaCy English model
 nlp = spacy.load("en_core_web_sm")
@@ -64,7 +66,7 @@ class TrainTicketBot(KnowledgeEngine):
             # Strip 'from ' from the start of extractedCity
             if extractedCity.startswith('from '):
                 singleJourneyFromCity = extractedCity[5:]
-                self.user_responses['singlejourney']['toCity'] = singleJourneyFromCity
+                self.user_responses['singlejourney']['fromCity'] = singleJourneyFromCity
                 #print(f"Valid city entered: {singleJourneyFromCity}")
                 break # Break the loop
 
@@ -98,7 +100,7 @@ class TrainTicketBot(KnowledgeEngine):
                 continue
 
             # Save the city and exit the loop
-            self.user_responses['singlejourney']['date'] = date
+            self.user_responses['singlejourney']['fullDate'] = date
             break
 
         while True and not time:
@@ -116,24 +118,64 @@ class TrainTicketBot(KnowledgeEngine):
             self.user_responses['singlejourney']['time'] = time
            
             break
-        while True and not returnJourneyFromCity:
-            returnJourneyFromCity = input("Please enter the valid city you are returning from ")
-            # Update the entities dictionary with the new input
-            entities = get_entities({'message': 'from ' + returnJourneyFromCity})
-            extractedCity = entities['returnJourney'].get('fromCity')
 
-            # If get_entities returns an empty result, ask the user to try again
-            if not extractedCity:
-                print("Invalid city. Please try again.")
-                continue
+        print(self.user_responses)
+        
 
-            # Strip 'from ' from the start of extractedCity
-            if extractedCity.startswith('from '):
-                returnJourneyFromCity = extractedCity[5:]
-                self.user_responses['returnJourney']['fromCity'] = returnJourneyFromCity
-                break # Break the loop
+           
 
-            print("Invalid city. Please try again.")
+        if all(value is None for value in self.user_responses['returnJourney'].values()):
+
+        
+            return_ticket = input("Do you want a return ticket? (yes/no)")
+
+            # Get the regex pattern from yes_pattern
+            yes_regex = yes_pattern[0]['LOWER']['REGEX']
+
+            # If the user wants a return ticket, proceed with the return journey details
+            if re.match(yes_regex, return_ticket, re.IGNORECASE):
+                self.user_responses['returnJourney']['fromCity'] = self.user_responses['singlejourney']['toCity']
+                self.user_responses['returnJourney']['toCity'] = self.user_responses['singlejourney']['fromCity']
+
+                print(f"Great! You are returning from {self.user_responses['returnJourney']['fromCity']} to {self.user_responses['returnJourney']['toCity']}")
+                returnDate = self.user_responses['returnJourney'].get('fullDate')
+
+
+                while True and not returnDate:
+                    returnDate = input(f"Please enter the date you will be returning  { (self.user_responses['returnJourney']['fromCity'] or '').replace('from ', '', 1)}")
+                    # Update the entities dictionary with the new input
+                    entities = get_entities({'message':   returnDate})
+                    returnDate = entities['returnJourney'].get('fullDate')
+
+                    # If get_entities returns an empty result, ask the user to try again
+                    if not returnDate:
+                        print("Invalid date. Please try again.")
+                        continue
+
+                    # Save the date and exit the loop
+                    self.user_responses['returnJourney']['fullDate'] = returnDate
+                    break
+
+                returnDate = self.user_responses['returnJourney'].get('time')
+
+                while True and not returnTime:
+                    returnTime = input(f"Please enter the time you are returning  { (self.user_responses['returnJourney']['fromCity'] or '').replace('from ', '', 1)} ")
+                    # Update the entities dictionary with the new input
+                    entities = get_entities({'message':   returnTime})
+                    returnTime = entities['returnJourney'].get('time')
+
+                    # If get_entities returns an empty result, ask the user to try again
+                    if not returnTime:
+                        print("Invalid time. Please try again.")
+                        continue
+
+                    # Save the time and exit the loop
+                    self.user_responses['returnJourney']['time'] = returnTime
+                    break
+
+                print(self.user_responses)
+                # Your code for return journey details here
+
 
         
 

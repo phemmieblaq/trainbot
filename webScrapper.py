@@ -1,7 +1,7 @@
 import json
 import requests
 from bs4 import BeautifulSoup
-
+#https://www.nationalrail.co.uk/journey-planner/?type=single&origin=182&destination=NRW&leavingType=departing&leavingDate=080524&leavingHour=07&leavingMin=00&adults=1&extraTime=0#O
 
 class Ticket(object):
     url = ""
@@ -16,14 +16,18 @@ class Ticket(object):
     def get_page_contents(url):
         Ticket.url = url
         r = requests.get(url)
-        print(f"Response status code: {r.status_code}") 
+        #print(f"Response status code: {r.status_code}")
+        #print(r.text) 
+
         
         return BeautifulSoup(r.text, 'html.parser')
 
     @staticmethod
-    def get_ticket_single(from_location, to_location, depart_date, depart_time):
-        url = ('http://ojp.nationalrail.co.uk/service/timesandfares/' + from_location + '/' + to_location
-               + '/' + depart_date + '/' + depart_time + '/dep')
+    def get_ticket_single(from_location, to_location, depart_date, depart_time_hour, depart_min):
+        url='https://www.nationalrail.co.uk/journey-planner/?type=single&origin='+ from_location+'&destination=' + to_location + '&leavingType=departing&leavingDate='+ depart_date + '&leavingHour='+depart_time_hour+'&leavingMin=' +depart_min+'&adults=1&extraTime=0#O'
+
+        # url = ('http://ojp.nationalrail.co.uk/service/timesandfares/' + from_location + '/' + to_location
+        #        + '/' + depart_date + '/' + depart_time + '/dep')
         html = Ticket.get_page_contents(url)
         print(url)
         return Ticket.get_cheapest_ticket(html, False, depart_date, None)
@@ -44,6 +48,7 @@ class Ticket(object):
 
             for x in page_contents.find('script', {'type': 'application/json'}):
                 info = json.loads(str(x).strip())
+                print(info)
                 if not info:
                     return None
 
@@ -75,4 +80,9 @@ class Ticket(object):
         except:
             return False
 if __name__ == "__main__":
-    Ticket.get_ticket_single('LON', 'BHM', '2022-12-25', '09:00')
+
+    page_url = 'https://www.nationalrail.co.uk/journey-planner/?type=single&origin=NRW&destination=182&leavingType=departing&leavingDate=080524&leavingHour=09&leavingMin=30&adults=1&extraTime=0#O'
+    page_contents = Ticket.get_page_contents(page_url)
+    #print (page_contents)
+    Ticket.get_cheapest_ticket(page_contents, False, '080524', None)
+    #Ticket.get_ticket_single('NRW', '182', '080524', '09','30')
