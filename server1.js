@@ -1,4 +1,3 @@
-
 // Save this as app.js
 const express = require('express');
 const http = require('http');
@@ -67,14 +66,6 @@ io.on('connection', (socket) => {
   socket.on('userMessage', (message) => {
     python.stdin.write(message + '\n');
   });
-});
-
-app.post('/emit', (req, res) => {
-  const { message } = req.body;
-  if (webSocketClient) {
-      webSocketClient.emit('display received message', message);
-  }
-  res.send({ status: 'success' });
 });
 
 server.listen(3000, () => {
