@@ -21,6 +21,7 @@ new_station_names = [name.text.replace(" Rail Station", "").replace("\\N", "") f
 #print(new_station_names)
 
 station_code_patterns = list(nlp.pipe(station_names[1]))
+#print(station_code_patterns)
 
 
 
@@ -127,13 +128,13 @@ matcher.add("middayMidnightTime", [midday_midnight_pattern, midday_midnight_patt
 # matcher.add("toStation", [destination_station_pattern])
 # matcher.add("stationName", [station_name_pattern])
 matcher.add("minute", [minute_pattern, minute_pattern2])
-from_station_patterns = [[{'LOWER': 'from'}, {'LOWER': word.lower()}] for name in new_station_names for word in name.split()]
+from_station_patterns = [[{'LOWER': 'from'}, {'LOWER': name.lower()}] for name in new_station_names]
 
 # Add each pattern to the matcher
 for pattern in from_station_patterns:
     matcher.add("fromCity", [pattern])
 
-to_station_patterns = [[{'LOWER': 'to'}, {'LOWER': word.lower()}] for name in new_station_names for word in name.split()]
+to_station_patterns = [[{'LOWER': 'to'}, {'LOWER': name.lower()}] for name in new_station_names]
 
 # Add each pattern to the matcher
 for pattern in to_station_patterns:

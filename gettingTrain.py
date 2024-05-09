@@ -1,10 +1,13 @@
 import spacy
 from experta import KnowledgeEngine, Rule, Fact
 import re
+import asyncio
+from scrape import TrainScrapeTicketBot
 
 import pandas as pd
+from playwright.async_api import async_playwright
 
-from patterns import get_entities,yes_pattern, no_pattern
+from patterns import get_entities,yes_pattern
 
 
 # Load spaCy English model
@@ -16,8 +19,14 @@ class TrainTicketBot(KnowledgeEngine):
         self.user_responses = {
     'singlejourney': {'service': None,'fromCity': None, 'toCity': None, 'fullDate': None, 'time': None},
     'returnJourney': {'fromCity': None, 'toCity': None, 'fullDate': None, 'time': None}
-}
-  
+}   
+    # async def run(self, playwright: Playwright) -> None:
+    #     scrape_bot = TrainScrapeTicketBot()
+    #     async with async_playwright() as playwright:
+    #         await scrape_bot.run(playwright)
+
+
+    
 
     @Rule(Fact(action='greet'))
     def greet(self):
@@ -88,6 +97,9 @@ class TrainTicketBot(KnowledgeEngine):
             # Save the city and exit the loop
             self.user_responses['singlejourney']['toCity'] = arrivingAtCity
             break
+
+
+
         while True and not date:
             date = input(f"Please enter the date you will be departing  { (self.user_responses['singlejourney']['fromCity'] or '').replace('from ', '', 1)}")
             # Update the entities dictionary with the new input
@@ -102,6 +114,8 @@ class TrainTicketBot(KnowledgeEngine):
             # Save the city and exit the loop
             self.user_responses['singlejourney']['fullDate'] = date
             break
+
+        
 
         while True and not time:
             time = input(f"Please enter the time you are leaving  { (self.user_responses['singlejourney']['fromCity'] or '').replace('from ', '', 1)} ")
@@ -120,6 +134,10 @@ class TrainTicketBot(KnowledgeEngine):
             break
 
         print(self.user_responses)
+        #After collecting all details, run the scrape bot
+                #asyncio.run(self.run_scrape_bot())
+                # Your code for return journey details here
+
         
 
            
@@ -174,6 +192,9 @@ class TrainTicketBot(KnowledgeEngine):
                     break
 
                 print(self.user_responses)
+
+                # After collecting all details, run the scrape bot
+                #asyncio.run(self.run_scrape_bot())
                 # Your code for return journey details here
 
 

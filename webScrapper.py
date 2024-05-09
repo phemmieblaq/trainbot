@@ -15,12 +15,16 @@ class Ticket(object):
     @staticmethod
     def get_page_contents(url):
         Ticket.url = url
-        r = requests.get(url)
+        r = requests.get('https://www.nationalrail.co.uk/journey-planner/?type=single&origin=NRW&destination=182&leavingType=departing&leavingDate=080524&leavingHour=09&leavingMin=30&adults=1&extraTime=0#O'
+)
         #print(f"Response status code: {r.status_code}")
-        #print(r.text) 
+        s= BeautifulSoup(r.text, 'html.parser')
+        with open('output.html', 'w') as f:
+            f.write(s.prettify())
 
         
-        return BeautifulSoup(r.text, 'html.parser')
+      
+
 
     @staticmethod
     def get_ticket_single(from_location, to_location, depart_date, depart_time_hour, depart_min):
@@ -48,7 +52,7 @@ class Ticket(object):
 
             for x in page_contents.find('script', {'type': 'application/json'}):
                 info = json.loads(str(x).strip())
-                print(info)
+                #print(info)
                 if not info:
                     return None
 
@@ -57,7 +61,7 @@ class Ticket(object):
                       'arrivalStationName': str(info['jsonJourneyBreakdown']['arrivalStationName']),
                       'departureTime': str(info['jsonJourneyBreakdown']['departureTime']),
                       'arrivalTime': str(info['jsonJourneyBreakdown']['arrivalTime'])}
-            print(f"Ticket: {ticket['url']}")
+            #print(f"Ticket: {ticket['url']}")
 
             duration_hours = str(info['jsonJourneyBreakdown']['durationHours'])
             duration_minutes = str(info['jsonJourneyBreakdown']['durationMinutes'])
@@ -81,7 +85,7 @@ class Ticket(object):
             return False
 if __name__ == "__main__":
 
-    page_url = 'https://www.nationalrail.co.uk/journey-planner/?type=single&origin=NRW&destination=182&leavingType=departing&leavingDate=080524&leavingHour=09&leavingMin=30&adults=1&extraTime=0#O'
+    page_url = 'https://www.nationalrail.co.uk/journey-planner/?type=single&origin=NRW&destination=182&leavingType=departing&leavingDate=080524&leavingHour=10&leavingMin=00&adults=1&extraTime=0#O'
     page_contents = Ticket.get_page_contents(page_url)
     #print (page_contents)
     Ticket.get_cheapest_ticket(page_contents, False, '080524', None)
