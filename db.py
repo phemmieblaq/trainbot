@@ -24,7 +24,7 @@ def get_train_station_data():
     cursor = connect.cursor()
 
     # Fetch only 'name' and 'alpha3' from stations table in train_data schema
-    query = "SELECT name, alpha3 FROM train_data.stations"
+    query = "SELECT name, tiploc FROM train_data.stations"
     cursor.execute(query)
 
     # Fetch all rows from the executed query
@@ -39,12 +39,53 @@ def get_train_station_data():
    
     return names, alpha3s
 
+def get_tiploc_by_name(station_name):
+    connect = connect_to_db()
+    cursor = connect.cursor()
+
+
+    # Convert station_name to uppercase
+    station_name = station_name.upper()
+
+    # Prepare the query
+    query = "SELECT tiploc FROM train_data.stations WHERE name = %s"
+    cursor.execute(query, (station_name,))
+
+    # Fetch the first row from the executed query
+    data = cursor.fetchone()
+
+    cursor.close()
+    connect.close()
+
+    # If data is not None, return the tiploc, otherwise return None
+    return data[0] if data else None
 
 
 # Gets all station names and codes and returns them in a tuple of two lists
 
+def get_tpl_by_name(station_name):
+    connect = connect_to_db()
+    cursor = connect.cursor()
 
 
-# if __name__ == "__main__":
-#     df = get_train_station_data()
-#     print(df)
+    # Convert station_name to uppercase
+    station_name = station_name.upper()
+
+    # Prepare the query
+    query = "SELECT tpl FROM train_data.stations WHERE name = %s"
+    cursor.execute(query, (station_name,))
+
+    # Fetch the first row from the executed query
+    data = cursor.fetchone()
+
+    cursor.close()
+    connect.close()
+
+    # If data is not None, return the tiploc, otherwise return None
+    return data[0] if data else None
+
+
+
+if __name__ == "__main__":
+    df = get_tpl_by_name("ACLE")
+    print(df)

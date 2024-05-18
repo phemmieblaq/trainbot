@@ -51,8 +51,13 @@ io.on('connection', (socket) => {
   const python = spawn('python3', ['gettingTrain.py']);
   
   python.stdout.on('data', (data) => {
-    const botMessage = data.toString();
-    socket.emit('botMessage', botMessage); // Emit 'botMessage' event
+    // Convert the Buffer to a string and split it into lines
+    const lines = data.toString().split('\n');
+
+    // Emit each line as a separate 'botMessage' event
+    for (const line of lines) {
+      socket.emit('botMessage', line);
+    }
   });
 
   python.stderr.on('data', (data) => {
@@ -67,7 +72,6 @@ io.on('connection', (socket) => {
     python.stdin.write(message + '\n');
   });
 });
-
 server.listen(3000, () => {
     console.log('listening on *:3000');
 });

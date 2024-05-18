@@ -17,7 +17,7 @@ station_names = get_train_station_data()
 station_name_patterns = list(nlp.pipe(station_names[0]))
 
 # Remove "Rail Station" and "\N" from each station namenew_station_names = [name.text.replace(" Rail Station", "").replace("\\N", "") for name in station_name_patterns]
-new_station_names = [name.text.replace(" Rail Station", "").replace("\\N", "") for name in station_name_patterns if name.text.replace(" Rail Station", "").replace("\\N", "")]
+new_station_names = [name.text for name in station_name_patterns if name.text]
 #print(new_station_names)
 
 station_code_patterns = list(nlp.pipe(station_names[1]))
@@ -100,13 +100,17 @@ matcher.add("false", [no_pattern])
 matcher.add("service", [service_pattern])
 
 # Create a pattern that matches a date in the format '20th July'
-date_pattern = [{'IS_DIGIT': True}, {'LOWER': {'IN': ['st', 'nd', 'rd', 'th']}}, {'IS_ALPHA': True}]
+#date_pattern = [{'IS_DIGIT': True}, {'LOWER': {'IN': ['st', 'nd', 'rd', 'th']}}, {'IS_ALPHA': True}]
 
 # Create a pattern that matches a time in the format '11am'
-time_pattern = [{'IS_DIGIT': True}, {'LOWER': {'IN': ['am', 'pm']}}]
+time_pattern = [{'TEXT': {'REGEX': '^(0[0-9]|1[0-9]|2[0-3]|[0-9])$'}},
+                {'TEXT': {'IN': [':']}, 'OP': '?'},
+                {'TEXT': {'REGEX': '^([0-5][0-9]|[0-9])$'}, 'OP': '?'},
+                {'LOWER': {'IN': ['am', 'pm']}, 'OP': '?'}]
+
 
 # Create a pattern that matches 'before' or 'after' followed by a time
-time_modifier_pattern = [{'LOWER': {'IN': ['before', 'after']}}, {'IS_DIGIT': True}, {'LOWER': {'IN': ['am', 'pm']}}]
+#time_modifier_pattern = [{'LOWER': {'IN': ['before', 'after']}}, {'IS_DIGIT': True}, {'LOWER': {'IN': ['am', 'pm']}}]
 
 # Add the patterns to the matcher
 
@@ -114,11 +118,11 @@ time_modifier_pattern = [{'LOWER': {'IN': ['before', 'after']}}, {'IS_DIGIT': Tr
 
 
 
-matcher.add("time", [time_modifier_pattern,time_pattern, military_time_pattern,casual_time_pattern, casual_time_pattern2])
-matcher.add("timeModifier", [time_modifier_pattern])
+matcher.add("time", [time_pattern, military_time_pattern,casual_time_pattern, casual_time_pattern2])
+#matcher.add("timeModifier", [time_modifier_pattern])
 matcher.add("day", [day_pattern])
 matcher.add("weekday", [weekday_pattern])
-matcher.add("fullDate", [full_date_pattern, dashed_date_pattern, date_pattern])
+matcher.add("fullDate", [full_date_pattern, dashed_date_pattern])
 matcher.add("numericalDate", [numerical_date_pattern])
 # matcher.add("militaryTime", [military_time_pattern])
 #matcher.add("casualTime", [casual_time_pattern, casual_time_pattern2])
@@ -145,29 +149,31 @@ days_later_pattern = [{'LIKE_NUM': True}, {'LOWER': 'days'}, {'LOWER': 'later'}]
 # Add the pattern to the matcher
 matcher.add("daysLater", [days_later_pattern])
 
+
+import dateparser
+def ordinal(n):
+    return "%d%s" % (n, "tsnrhtdd"[((n//10%10!=1)*(n%10<4)*n%10)::4])
+
 import re
 from dateutil.parser import parse
 
+from datetime import datetime
+
 def get_entities(json):
     message = json['message']  # Input text
-    # Split the message into departing and arriving parts
     messages = re.split('come back|and return| go back| head back|make a return|travel back|get back|bounce back|move back|journey back|and backtrack|and revert|and retreat', message)
     departing_message = messages[0]
     arriving_message = messages[1] if len(messages) > 1 else ''
 
-    # Process the departing and arriving messages
     departing_doc = nlp(departing_message)
     arriving_doc = nlp(arriving_message)
 
-    # Find matches in the departing and arriving messages
     departing_matches = matcher(departing_doc)
     arriving_matches = matcher(arriving_doc)
 
-    # Initialize results dictionaries
     departing_results = {}
     arriving_results = {}
 
-    # Process matches and extract entities
     for match_id, start, end in departing_matches:
         match_id_string = nlp.vocab.strings[match_id]
         match = departing_doc[start:end].text
@@ -176,11 +182,20 @@ def get_entities(json):
         elif match_id_string == 'toCity':
             departing_results[match_id_string] = match
         elif match_id_string == 'fullDate':
-            try:
-                date = parse(match)
-                departing_results[match_id_string] = date.strftime('%dth %B')
-            except ValueError:
-                pass
+            if 'am' in match or 'pm' in match:
+                departing_results[match_id_string] = None
+            else:
+                try:
+                    date = parse(match, fuzzy=True)
+                    departing_results[match_id_string] = date.strftime('%dth %B')
+                except ValueError:
+                    departing_results[match_id_string] = None
+        elif match_id_string == 'time':
+            if 'am' in match or 'pm' in match:
+                time = parse(match, fuzzy=True)
+                departing_results[match_id_string] = time.strftime('%H:%M')
+            else:
+                departing_results[match_id_string] = None
         else:
             departing_results[match_id_string] = match
 
@@ -190,21 +205,21 @@ def get_entities(json):
         if match_id_string == 'fromCity':
             arriving_results[match_id_string] = match
         elif match_id_string == 'fullDate':
-            try:
-                date = parse(match)
-                arriving_results[match_id_string] = date.strftime('%dth %B')
-            except ValueError:
-                pass
+            if 'am' in match or 'pm' in match:
+                arriving_results[match_id_string] = None
+            else:
+                try:
+                    date = parse(match, fuzzy=True)
+                    arriving_results[match_id_string] = date.strftime('%dth %B')
+                except ValueError:
+                    arriving_results[match_id_string] = None
+        elif match_id_string == 'time':
+            if 'am' in match or 'pm' in match:
+                time = parse(match, fuzzy=True)
+                arriving_results[match_id_string] = time.strftime('%H:%M')
+            else:
+                arriving_results[match_id_string] = None
         else:
             arriving_results[match_id_string] = match
 
-    # Return the departing and arriving results
     return {'singleJourney': departing_results, 'returnJourney': arriving_results}
-# test_input = {
-#     "message": "A bit more complicated case is that a passenger intends to travel from Norwich to Oxford on the 20th July, hoping to depart before 23:00, and come back, departing from Oxford in the afternoon (after 1pm) of 30th July"
-# }
-# # Call the get_entities function with the test input
-# results = get_entities(test_input)
-
-
-# print(results)
