@@ -132,6 +132,9 @@ matcher.add("middayMidnightTime", [midday_midnight_pattern, midday_midnight_patt
 # matcher.add("toStation", [destination_station_pattern])
 # matcher.add("stationName", [station_name_pattern])
 matcher.add("minute", [minute_pattern, minute_pattern2])
+station_patterns = [[{'LOWER': name.lower()}] for name in new_station_names]
+matcher.add("station", station_patterns)
+
 from_station_patterns = [[{'LOWER': 'from'}, {'LOWER': name.lower()}] for name in new_station_names]
 
 # Add each pattern to the matcher
@@ -223,3 +226,18 @@ def get_entities(json):
             arriving_results[match_id_string] = match
 
     return {'singleJourney': departing_results, 'returnJourney': arriving_results}
+
+def getStation(json):
+    message = json['message']
+    doc = nlp(message)
+    matches = matcher(doc)
+    results = {}
+    for match_id, start, end in matches:
+        match_id_string = nlp.vocab.strings[match_id]
+        match = doc[start:end].text
+        if match_id_string == 'station':
+            results[match_id_string] = match
+    
+        else:
+            results[match_id_string] = match
+    return results

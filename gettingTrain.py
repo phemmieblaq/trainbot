@@ -13,7 +13,7 @@ from db import get_tiploc_by_name
 import pandas as pd
 from playwright.async_api import async_playwright
 
-from patterns import get_entities,yes_pattern
+from patterns import get_entities,yes_pattern,getStation
 
 
 # Load spaCy English model
@@ -304,7 +304,13 @@ class TrainTicketBot(KnowledgeEngine):
 
     @Rule(Fact(action='query_delay'))
     def delay_service(self):
-        current_location = input("Where is the train now? ")
+        delay_entities = None
+
+        while not delay_entities :
+            current_location = input("Where is the train now? ")
+            delay_entities = getStation({'message': current_location})
+                
+        print(delay_entities)
         delay_time = input("How much time has the train been delayed? ")
         destination = input("Where is your destination? ")
 
