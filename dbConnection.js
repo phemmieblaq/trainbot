@@ -14,7 +14,7 @@ const pool = new Pool({
 const testDBConnection = async () => {
   const client = await pool.connect(); // Attempt to get a client from the connection pool
   try {
-    await client.query('SET search_path TO blog, public'); // Set the schema search path
+    await client.query('SET search_path TO train_station, public'); // Set the schema search path
     console.log('Connected to the database and search_path set');
   } catch (err) {
     console.error('Database connection failed:', err);
